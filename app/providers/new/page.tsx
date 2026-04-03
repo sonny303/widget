@@ -48,9 +48,79 @@ const providerSchema = z.object({
 
 type ProviderFormData = z.infer<typeof providerSchema>;
 
-function generateOnboardingChecklist(providerId: string) {
-  console.log(`[PLACEHOLDER] generateOnboardingChecklist called for provider: ${providerId}`);
-  console.log('[PLACEHOLDER] This function will be implemented by Devin to create checklist and tasks');
+const ONBOARDING_STEPS = [
+  { step_order: 1, title: 'Collect provider demographic info (name, DOB, address, email)' },
+  { step_order: 2, title: 'Confirm Individual NPI and taxonomy code' },
+  { step_order: 3, title: 'Verify state license (number, state, expiry)' },
+  { step_order: 4, title: 'Confirm group/facility assignment (TIN, Group NPI, location)' },
+  { step_order: 5, title: 'Upload W-9 and credentialing application' },
+  { step_order: 6, title: 'Confirm malpractice insurance (carrier, policy number, expiry)' },
+  { step_order: 7, title: 'Open credential cases for all required payers' },
+  { step_order: 8, title: 'Generate and review payer enrollment forms / portal data guides' },
+  { step_order: 9, title: 'Submit all payer enrollments and log submission dates' },
+  { step_order: 10, title: 'Set 14-day follow-up tickler for each open case' },
+];
+
+const DEFAULT_TEMPLATE_ID = '00000000-0000-0000-0000-000000000050';
+
+async function generateOnboardingChecklist(providerId: string) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const orgId = await getUserOrgId(user.id);
+  if (!orgId) throw new Error('No organization found');
+
+  const { data: checklist, error: checklistError } = await supabase
+    .from('onboarding_checklist')
+    .insert({
+      provider_id: providerId,
+      org_id: orgId,
+      template_id: DEFAULT_TEMPLATE_ID,
+      status: 'in_progress',
+      created_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+
+  if (checklistError) throw checklistError;
+
+  const taskIds: string[] = [];
+
+  for (let i = 0; i < ONBOARDING_STEPS.length; i++) {
+    const step = ONBOARDING_STEPS[i];
+    const taskRow = {
+      checklist_id: checklist.id,
+      org_id: orgId,
+      title: step.title,
+      step_order: step.step_order,
+      status: step.step_order === 1 ? 'pending' : 'locked',
+      depends_on_task_id: i === 0 ? null : taskIds[i - 1],
+      is_required: true,
+      completed_at: null,
+    };
+
+    const result: { data: { id: string } | null; error: unknown } = await supabase
+      .from('onboarding_task')
+      .insert(taskRow)
+      .select('id')
+      .single();
+
+    if (result.error) throw result.error;
+    taskIds.push(result.data!.id);
+  }
+
+  const { error: auditError } = await supabase
+    .from('audit_log')
+    .insert({
+      org_id: orgId,
+      action: 'onboarding_checklist_created',
+      entity_type: 'provider',
+      entity_id: providerId,
+      performed_by: user.id,
+      created_at: new Date().toISOString(),
+    });
+
+  if (auditError) throw auditError;
 }
 
 function NewProviderContent() {
@@ -140,7 +210,7 @@ function NewProviderContent() {
 
       if (assignmentError) throw assignmentError;
 
-      generateOnboardingChecklist(provider.id);
+      await generateOnboardingChecklist(provider.id);
 
       toast.success('Provider added successfully');
       router.push(`/providers/${provider.id}`);
