@@ -1,6 +1,6 @@
 'use client';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 function ProviderDetailContent() {
   const params = useParams();
   const providerId = params.id as string;
+  const queryClient = useQueryClient();
 
   const { data: provider, isLoading: providerLoading } = useQuery<any>({
     queryKey: ['provider', providerId],
@@ -230,7 +231,7 @@ function ProviderDetailContent() {
                             id={task.id}
                             checked={completed}
                             disabled={locked}
-                            onCheckedChange={() => handleTaskComplete(task.id)}
+                            onCheckedChange={() => handleTaskComplete(task.id, providerId, queryClient)}
                             className="mt-1"
                           />
                           <label
