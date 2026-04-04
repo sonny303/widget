@@ -1,6 +1,7 @@
-import { supabase } from '@/lib/supabase/client';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export async function getProviderChecklist(providerId: string) {
+  const supabase = createClientComponentClient();
   const { data: checklist, error: checklistError } = await supabase
     .from('onboarding_checklist')
     .select('id')
