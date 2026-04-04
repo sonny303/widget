@@ -1,7 +1,8 @@
-import { supabase } from '@/lib/supabase/client';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 import { getUserOrgId } from '@/lib/supabase/auth';
 
 export async function getProviders() {
+  const supabase = createClientComponentClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -31,6 +32,7 @@ export async function getProviders() {
 }
 
 export async function getProvider(id: string) {
+  const supabase = createClientComponentClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -55,6 +57,7 @@ export async function getProvider(id: string) {
 }
 
 export async function getProviderGroups() {
+  const supabase = createClientComponentClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
@@ -68,6 +71,7 @@ export async function getProviderGroups() {
 }
 
 export async function getFacilitiesByGroup(providerGroupId: string) {
+  const supabase = createClientComponentClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 

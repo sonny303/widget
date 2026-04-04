@@ -1,12 +1,14 @@
-import { supabase } from './client';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
 
 export async function getCurrentUser() {
+  const supabase = createClientComponentClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error) throw error;
   return user;
 }
 
 export async function getUserOrgId(userId: string): Promise<string | null> {
+  const supabase = createClientComponentClient();
   const { data, error } = await supabase
     .from('org_user')
     .select('org_id')
@@ -18,6 +20,7 @@ export async function getUserOrgId(userId: string): Promise<string | null> {
 }
 
 export async function signInWithMagicLink(email: string) {
+  const supabase = createClientComponentClient();
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
@@ -29,6 +32,7 @@ export async function signInWithMagicLink(email: string) {
 }
 
 export async function signOut() {
+  const supabase = createClientComponentClient();
   const { error } = await supabase.auth.signOut();
   if (error) throw error;
 }
